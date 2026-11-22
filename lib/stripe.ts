@@ -1,6 +1,8 @@
 import Stripe from 'stripe';
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+// Billing is optional. Without a key the client still loads, so the app builds and runs,
+// and the billing routes answer with Stripe's own "invalid key" error.
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_not_configured', {
   apiVersion: '2023-10-16',
   typescript: true,
 });

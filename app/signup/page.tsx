@@ -61,27 +61,9 @@ export default function SignUpPage() {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success('Account created successfully! Please check your email to verify your account.');
-        router.push('/login');
-      }
-    } catch (error) {
-      toast.error('An unexpected error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOAuthSignIn = async (provider: 'google' | 'github') => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        },
-      });
-      if (error) {
-        toast.error(error.message);
+        // The server signs a new account in at once: it sends no email to confirm.
+        toast.success('Account created. Welcome to Kanba!');
+        router.push('/dashboard');
       }
     } catch (error) {
       toast.error('An unexpected error occurred');
@@ -117,28 +99,6 @@ export default function SignUpPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-2 mb-4">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full flex items-center justify-center gap-2"
-              onClick={() => handleOAuthSignIn('google')}
-              disabled={loading}
-            >
-              <Image src="/google.svg" alt="Google" width={20} height={20} />
-              Sign up with Google
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full flex items-center justify-center gap-2"
-              onClick={() => handleOAuthSignIn('github')}
-              disabled={loading}
-            >
-              <Image src="/github.svg" alt="GitHub" width={20} height={20} className="dark: invert"/>
-              Sign up with GitHub
-            </Button>
-          </div>
           <form onSubmit={handleSignUp} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>

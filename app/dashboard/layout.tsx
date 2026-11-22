@@ -10,13 +10,18 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, signOut } = useUser();
+  const { user, loading, signOut } = useUser();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Nobody is signed in: the pages inside never mount to send them to the login themselves.
+  useEffect(() => {
+    if (mounted && !loading && !user) router.replace('/login');
+  }, [mounted, loading, user, router]);
 
   const handleSignOut = () => {
     router.push('/');

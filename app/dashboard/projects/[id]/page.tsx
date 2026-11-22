@@ -165,8 +165,8 @@ export default function ProjectPage() {
       if (projectError) throw projectError;
       setProject(project);
 
-      // Load project members
-      await loadProjectMembers();
+      // Load project members. The id is passed: the state set above is not readable yet.
+      await loadProjectMembers(project.id);
 
       // Get columns with tasks
       const { data: columns, error: columnsError } = await supabase
@@ -211,7 +211,8 @@ export default function ProjectPage() {
     }
   };
 
-  const loadProjectMembers = async () => {
+  const loadProjectMembers = async (id: string | undefined = project?.id) => {
+    if (!id) return;
     try {
       const { data: members, error } = await supabase
         .from('project_members')
@@ -224,7 +225,7 @@ export default function ProjectPage() {
             avatar_url
           )
         `)
-        .eq('project_id', project?.id);
+        .eq('project_id', id);
 
       if (error) throw error;
       setProjectMembers(members || []);

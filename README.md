@@ -51,112 +51,67 @@
 # Open-source, lightweight Trello alternative designed for makers and indie hackers.
 
 Focus on simplicity, speed, and scalability.
-Built with modern stack: Tailwind CSS, shadcn/ui, Supabase, Stripe integration.
+Built with modern stack: Tailwind CSS, shadcn/ui, Postgres, Stripe integration.
 Supports unlimited projects, team collaboration, dark/light mode, and seamless user experience.
 Perfect for solo devs and small teams who want full control without unnecessary complexity.
 
 ## 🌟 If you find this project useful, consider giving it a star! It helps others discover it too.
 
-# Deployment Guide
+# Self-hosting
 
-## Overview
-This application now uses local Next.js API routes instead of Supabase Edge Functions for Stripe integration. This makes deployment simpler and allows you to use standard .env files for configuration.
+> [!NOTE]
+> This is a fork of [Kanba](https://github.com/Kanba-co/kanba) that runs without Supabase. Everything lives in one Postgres database that you host. There is no outside service to sign up for.
 
-## Environment Variables Setup
-
-### 1. Create .env.local file
-Copy `.env.example` to `.env.local` and fill in your actual values:
+## Run it with Docker
 
 ```bash
-cp .env.example .env.local
+git clone https://github.com/cristianlanderos/kanba.git
+cd kanba
+cp .env.example .env    # then set POSTGRES_PASSWORD
+docker compose up -d --build
 ```
 
-### 2. Required Environment Variables
+The board is at http://localhost:3000. Open `/signup` to make the first account. The first start creates the database schema, and every later start brings it up to date.
 
-#### Supabase Configuration
-- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anonymous key
-- `SUPABASE_SERVICE_ROLE_KEY` - Your Supabase service role key (server-side only)
+| Setting | Does |
+| --- | --- |
+| `POSTGRES_PASSWORD` | The password of the database that Docker starts. Required |
+| `KANBA_ALLOW_SIGNUP` | `true` lets anyone who opens the site make an account. Set it to `false` once your people have theirs |
+| `KANBA_DEFAULT_PLAN` | `pro` (the default) gives new accounts unlimited projects. `free` keeps the limit of one, for a site that sells the upgrade through Stripe |
+| `KANBA_PORT` | The port on your machine. The default is 3000 |
+| `KANBA_DATA` | A folder for the database files. Without it, Docker keeps them in a volume |
 
-#### Stripe Configuration (optional)
-- `STRIPE_SECRET_KEY` - Your Stripe secret key (server-side only)
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` - Your Stripe publishable key
-- `STRIPE_WEBHOOK_SECRET` - Your Stripe webhook secret
+Back up the database with `docker exec kanba-db pg_dump -U kanba kanba > kanba.sql`.
 
-#### Site Configuration
-- `NEXT_PUBLIC_SITE_URL` - Your site URL (for production)
-- `NEXTAUTH_URL` - Your site URL (same as above)
-- `NEXTAUTH_SECRET` - A random secret for NextAuth
+## Run it for development
 
-## Local Development
+You need Node 20 and a Postgres 14 or newer whose user owns the database.
 
-1. Install dependencies:
 ```bash
 npm install
-```
-
-2. Set up your environment variables in `.env.local`
-
-3. Run the development server:
-```bash
+export DATABASE_URL=postgresql://kanba:password@localhost:5432/kanba
+npm run db:migrate
 npm run dev
 ```
 
-4. Test Stripe webhooks locally using Stripe CLI:
-```bash
-stripe listen --forward-to localhost:3000/api/stripe/webhook
-```
+## What replaced Supabase
 
-## Production Deployment
+The screens still import a client named `supabase` from `lib/supabase.ts`, with the same methods, so they did not change. What stands behind it did:
 
+| Supabase did | Now |
+| --- | --- |
+| Data API (PostgREST) | `app/api/db` and `lib/server/query.ts` turn each query into SQL, with every name checked against the database catalog and every value sent as a parameter |
+| Row level security | Unchanged. Each query runs as the signed-in user, and the policies in `supabase/migrations` decide what that user sees |
+| Auth | `app/api/auth` and `lib/server/auth.ts`: email and password, scrypt hashes, and an HttpOnly session cookie |
+| Realtime | The notification bell asks again every 15 seconds |
+| Database | The same migrations, replayed by `scripts/migrate.js` after `db/000_base.sql` gives a plain Postgres the roles and the `auth` schema they expect |
 
-### Vercel Deployment
+Three things differ from the original:
 
-1. **Deploy to Vercel:**
-```bash
-npx vercel
-```
+- **No Google or GitHub sign-in.** Accounts use email and password.
+- **No email.** The server sends none, so a new account is not confirmed by email. For a forgotten password, run `docker exec -it kanba node scripts/set-password.js ana@example.com` on the server.
+- **A shared board link** is read by the server for its token (`app/api/share`). Without signing in, nobody reads anything else.
 
-2. **Environment Variables:**
-   Add all environment variables through Vercel dashboard or CLI
+## Stripe (optional)
 
-3. **Stripe Webhook Setup:**
-   - Point webhook to: `https://your-domain.vercel.app/api/stripe/webhook`
-
-## API Endpoints
-
-The application now uses these local API routes:
-
-- `POST /api/stripe/checkout` - Creates Stripe checkout sessions
-- `POST /api/stripe/webhook` - Handles Stripe webhook events
-
-## Benefits of Local API Routes
-
-1. **Simpler Deployment** - No need to deploy separate edge functions
-2. **Environment Variables** - Standard .env file support
-3. **Better Debugging** - Easier to debug locally
-4. **Framework Integration** - Better integration with Next.js
-5. **No Vendor Lock-in** - Can deploy to any platform that supports Next.js
-
-## Troubleshooting
-
-1. **Webhook Issues:**
-   - Ensure `STRIPE_WEBHOOK_SECRET` matches your Stripe webhook endpoint
-   - Check webhook logs in Stripe dashboard
-   - Verify webhook URL is correct
-
-2. **Environment Variables:**
-   - Ensure all required variables are set
-   - Check for typos in variable names
-   - Verify Supabase service role key has proper permissions
-
-3. **CORS Issues:**
-   - API routes include proper CORS headers
-   - Ensure your domain is whitelisted if needed
-
-## Security Notes
-
-- Never expose `STRIPE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY` to the client
-- Use `NEXT_PUBLIC_` prefix only for client-side variables
-- Regularly rotate your webhook secrets
-- Monitor webhook delivery in Stripe dashboard
+Billing is off until you set `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` and `STRIPE_WEBHOOK_SECRET`. Point the Stripe webhook at `/api/stripe/webhook`.

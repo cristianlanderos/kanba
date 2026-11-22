@@ -203,8 +203,7 @@ export default function BillingPage() {
   };
 
   // Check if required environment variables are present
-  const hasRequiredEnvVars = process.env.NEXT_PUBLIC_SUPABASE_URL && 
-                             process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  const hasRequiredEnvVars = !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
   if (loading) {
     return (

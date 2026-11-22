@@ -33,8 +33,11 @@ services:
       DATABASE_URL: postgresql://kanba:${POSTGRES_PASSWORD}@db:5432/kanba
       KANBA_ALLOW_SIGNUP: ${KANBA_ALLOW_SIGNUP:-true}
       KANBA_DEFAULT_PLAN: ${KANBA_DEFAULT_PLAN:-pro}
+    volumes:
+      - ${KANBA_UPLOADS_DIR:-kanba-uploads}:/data/uploads
     ports:
       - "${KANBA_PORT:-3000}:3000"
 
 volumes:
   kanba-db:
+  kanba-uploads:

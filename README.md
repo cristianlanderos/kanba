@@ -80,6 +80,7 @@ The board is at http://localhost:3000. Open `/signup` to make the first account.
 | `KANBA_DEFAULT_PLAN` | `pro` (the default) gives new accounts unlimited projects. `free` keeps the limit of one, for a site that sells the upgrade through Stripe |
 | `KANBA_PORT` | The port on your machine. The default is 3000 |
 | `KANBA_DATA` | A folder for the database files. Without it, Docker keeps them in a volume |
+| `KANBA_UPLOADS_DIR` | A folder for the images on tasks. Without it, Docker keeps them in a volume |
 
 Back up the database with `docker exec kanba-db pg_dump -U kanba kanba > kanba.sql`.
 
@@ -110,6 +111,7 @@ Three things differ from the original:
 
 - **No Google or GitHub sign-in.** Accounts use email and password.
 - **No email.** The server sends none, so a new account is not confirmed by email. For a forgotten password, run `docker exec -it kanba node scripts/set-password.js ana@example.com` on the server.
+- **Images on tasks.** Open a task with Edit, then add pictures by button, paste or drop. The first one is the card's cover. The files stay on the server's disk, and only people who may see the task can load them.
 - **A shared board link** is read by the server for its token (`app/api/share`). Without signing in, nobody reads anything else.
 
 ## Stripe (optional)

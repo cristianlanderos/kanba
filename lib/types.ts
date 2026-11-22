@@ -40,6 +40,8 @@ export interface Task {
     full_name: string | null;
     avatar_url: string | null;
   };
+  /** In the order they were added. The first is the card's cover. */
+  task_images?: { id: string; file: string; created_at: string }[];
 }
 
 export interface ProjectMember {

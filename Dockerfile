@@ -26,6 +26,10 @@ COPY --from=builder /app/next.config.js ./next.config.js
 COPY --from=builder /app/db ./db
 COPY --from=builder /app/supabase/migrations ./supabase/migrations
 COPY --from=builder /app/scripts/migrate.js /app/scripts/set-password.js ./scripts/
+# Uploaded images. Mount a folder or a volume here to keep them.
+ENV KANBA_UPLOADS=/data/uploads
+RUN mkdir -p /data/uploads
+VOLUME /data/uploads
 EXPOSE 3000
 # The schema first, so a new or older database is ready before the first request.
 CMD ["sh", "-c", "node scripts/migrate.js && npm start"]

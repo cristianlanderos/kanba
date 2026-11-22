@@ -54,12 +54,16 @@ async function connect() {
 async function main() {
   const client = await connect();
   try {
-    // Outside `public`, which is the only schema the app's query route reads.
-    await client.query('CREATE SCHEMA IF NOT EXISTS kanba');
+    // The migrations name their tables without a schema. Postgres looks first for a schema
+    // named like the user, so with a user and a schema both called "kanba" the tables would
+    // land there and not in `public`. Hence this line, and a bookkeeping schema with a name
+    // no user has. It stays outside `public`, the only schema the app's query route reads.
+    await client.query('SET search_path TO public');
+    await client.query('CREATE SCHEMA IF NOT EXISTS kanba_internal');
     await client.query(
-      'CREATE TABLE IF NOT EXISTS kanba.migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())'
+      'CREATE TABLE IF NOT EXISTS kanba_internal.migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())'
     );
-    const done = new Set((await client.query('SELECT name FROM kanba.migrations')).rows.map((row) => row.name));
+    const done = new Set((await client.query('SELECT name FROM kanba_internal.migrations')).rows.map((row) => row.name));
     let applied = 0;
     for (const [folder, file] of plan()) {
       const name = `${folder}/${file}`;
@@ -68,7 +72,7 @@ async function main() {
       try {
         await client.query('BEGIN');
         await client.query(sql);
-        await client.query('INSERT INTO kanba.migrations (name) VALUES ($1)', [name]);
+        await client.query('INSERT INTO kanba_internal.migrations (name) VALUES ($1)', [name]);
         await client.query('COMMIT');
         applied++;
       } catch (error) {

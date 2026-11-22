@@ -41,10 +41,11 @@ export async function asIdentity<T>(identity: Identity, work: (client: PoolClien
   const client = await pool().connect();
   try {
     await client.query('BEGIN');
-    await client.query("SELECT set_config('request.jwt.claims', $1, true), set_config('role', $2, true)", [
-      JSON.stringify(claims),
-      identity.role,
-    ]);
+    // The search path too: the schema's functions and policies name their tables without one.
+    await client.query(
+      "SELECT set_config('search_path', 'public', true), set_config('request.jwt.claims', $1, true), set_config('role', $2, true)",
+      [JSON.stringify(claims), identity.role]
+    );
     const result = await work(client);
     await client.query('COMMIT');
     return result;

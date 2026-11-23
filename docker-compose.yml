@@ -1,14 +1,43 @@
-version: '3.8'
+# Kanba and its database, with nothing outside this file.
+#
+#   cp .env.example .env    # then set POSTGRES_PASSWORD
+#   docker compose up -d --build
+#
+# The board is then at http://localhost:3000. Sign up to make the first account.
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: kanba-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kanba
+      POSTGRES_USER: kanba
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - ${KANBA_DATA:-kanba-db}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kanba -d kanba"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   web:
     build: .
-    container_name: kanban-app
-    ports:
-      - '3000:3000'
-    environment:
-      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      # - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY} # (opsiyonel, gerekirse ekle)
+    image: kanba:local
+    container_name: kanba
     restart: unless-stopped
-    env_file:
-      - .env.local 
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://kanba:${POSTGRES_PASSWORD}@db:5432/kanba
+      KANBA_ALLOW_SIGNUP: ${KANBA_ALLOW_SIGNUP:-true}
+      KANBA_DEFAULT_PLAN: ${KANBA_DEFAULT_PLAN:-pro}
+    volumes:
+      - ${KANBA_UPLOADS_DIR:-kanba-uploads}:/data/uploads
+    ports:
+      - "${KANBA_PORT:-3000}:3000"
+
+volumes:
+  kanba-db:
+  kanba-uploads:

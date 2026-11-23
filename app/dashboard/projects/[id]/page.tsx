@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/tabs';
 import { TeamManagement } from '@/components/team-management';
 import { TaskComments } from '@/components/task-comments';
+import { TaskImages } from '@/components/task-images';
 import { ActivityFeed } from '@/components/activity-feed';
 import { supabase } from '@/lib/supabase';
 import { useUser } from '@/components/user-provider';
@@ -165,8 +166,8 @@ export default function ProjectPage() {
       if (projectError) throw projectError;
       setProject(project);
 
-      // Load project members
-      await loadProjectMembers();
+      // Load project members. The id is passed: the state set above is not readable yet.
+      await loadProjectMembers(project.id);
 
       // Get columns with tasks
       const { data: columns, error: columnsError } = await supabase
@@ -189,16 +190,19 @@ export default function ProjectPage() {
                 email,
                 full_name,
                 avatar_url
-              )
+              ),
+              task_images ( id, file, created_at )
             `)
             .eq('column_id', column.id)
             .order('position');
 
           if (tasksError) throw tasksError;
 
+          // The oldest image first: it is the card's cover.
+          const byAge = (a: { created_at: string }, b: { created_at: string }) => a.created_at.localeCompare(b.created_at);
           return {
             ...column,
-            tasks: tasks || [],
+            tasks: (tasks || []).map((task: any) => ({ ...task, task_images: [...(task.task_images || [])].sort(byAge) })),
           };
         })
       );
@@ -211,7 +215,8 @@ export default function ProjectPage() {
     }
   };
 
-  const loadProjectMembers = async () => {
+  const loadProjectMembers = async (id: string | undefined = project?.id) => {
+    if (!id) return;
     try {
       const { data: members, error } = await supabase
         .from('project_members')
@@ -224,7 +229,7 @@ export default function ProjectPage() {
             avatar_url
           )
         `)
-        .eq('project_id', project?.id);
+        .eq('project_id', id);
 
       if (error) throw error;
       setProjectMembers(members || []);
@@ -1033,6 +1038,8 @@ export default function ProjectPage() {
               </Select>
             </div>
             
+            {editingTask && <TaskImages taskId={editingTask.id} onChange={loadProject} />}
+
             <div className="flex gap-3 pt-4">
               <Button type="submit" size="xs" disabled={creating} className="flex-1">
                 {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

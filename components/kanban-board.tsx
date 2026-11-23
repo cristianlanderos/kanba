@@ -120,6 +120,23 @@ function TaskCard({ task, index, onEdit, onDelete, onViewComments, onToggleDone,
                   {task.description}
                 </p>
               )}
+              {task.task_images && task.task_images.length > 0 && (
+                <div className="relative overflow-hidden rounded-md border bg-muted">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/api/images/${task.task_images[0].file}`}
+                    alt=""
+                    draggable={false}
+                    loading="lazy"
+                    className="h-28 w-full object-cover"
+                  />
+                  {task.task_images.length > 1 && (
+                    <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                      +{task.task_images.length - 1}
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="flex justify-between items-center text-xs text-muted-foreground">
                 <div className="flex items-center space-x-4">
                     <Badge variant="secondary" className={`text-xs ${getPriorityColor(task.priority)}`}><Flag className="h-3 w-3 mr-1" />{task.priority}</Badge>
